@@ -1,0 +1,254 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>Model - World - Camera - Clipping - Screen</title>
+  <style>
+    .screen {
+      width: 640px;
+      height: 480px;
+      color: black;
+      text-align: center;
+      line-height: 400px;
+    }
+  </style>
+</head>
+
+<body onload="main()">
+
+    <template id="frameTemplate">
+
+    </template>
+
+    <template id="titleTemplate">
+        <div class="screen">
+        <canvas width="640" height="480" id="canv"></canvas>
+        </div>
+        <div>
+            <button onclick="update({name:'next'})">Next State</button>
+        </div>
+    </template>
+
+    <template id="loadTemplate">
+        <div class="screen">
+        <div>Load Template</div>
+        </div>
+        <div>
+            <button onclick="update({name:'previous'})">Previous State</button>
+            <button onclick="update({name:'next'})">Next State</button>
+        </div>
+    </template>
+
+    <template id="runTemplate">
+        <div class="screen">
+        <div>Run Template</div>
+        </div>
+        <div>
+            <button onclick="update({name:'previous'})">Previous State</button>
+            <button onclick="update({name:'next'})">Next State</button>
+        
+        </div>
+    </template>
+
+    <template id="endTemplate">
+        <div class="screen">
+        <div>End Template</div>
+        </div>
+        <div>
+            <button onclick="update({name:'previous'})">Previous State</button>
+        </div>
+    </template>
+
+    <div id="templateHere"></div>
+
+    <script>
+        //View Code
+
+        var titleTemplate, loadTemplate, runTemplate, endTemplate;
+        var templateHere;
+
+        function updateView() {
+        //Get initial values as needed
+        if (!titleTemplate)
+            titleTemplate = document.getElementById("titleTemplate");
+        if (!loadTemplate)
+            loadTemplate = document.getElementById("loadTemplate");
+        if (!runTemplate)
+            runTemplate = document.getElementById("runTemplate");
+        if (!endTemplate)
+            endTemplate = document.getElementById("endTemplate");
+        if (!templateHere)
+            templateHere = document.getElementById("templateHere");
+
+        var clone;
+        if (state == TITLE_STATE) {
+            clone = titleTemplate.content.cloneNode(true);
+        } else if (state == LOAD_STATE) {
+            var clone = loadTemplate.content.cloneNode(true);
+        } else if (state == RUN_STATE) {
+            var clone = runTemplate.content.cloneNode(true);
+        } else if (state == END_STATE) {
+            var clone = endTemplate.content.cloneNode(true);
+        } else {
+            return console.log("ERROR: Couldn't match state " + state);
+        }
+
+        templateHere.innerHTML = "";
+        templateHere.appendChild(clone);
+        }
+
+    </script>
+
+    <script>
+        //Controls
+
+        function main() {
+        setInterval(timer, 1000 / 30);
+        updateView();
+        }
+
+        var updateListeners = [];
+
+        function timer() {
+        update({name:"timer"})
+        }
+
+        function update(event) {
+        for (let i = 0; i < updateListeners.length; i++) {
+            updateListeners[i].eventPump(event);
+        }
+        }
+
+    </script>
+
+
+
+
+    <script>
+        //Model code
+        //A variable that has my state
+        //JS is dynamcially typed
+        var state;
+        var stateHandler;
+
+        //A set of states we can be in
+        var TITLE_STATE = 1;
+        var LOAD_STATE = 2;
+        var RUN_STATE = 3;
+        var END_STATE = 4;
+
+        //Set our intital state
+        state = TITLE_STATE;
+
+        var titleStateHandler = {
+            start() {
+                updateListeners.push(this);        
+            },
+            eventPump(event) {
+                switch (event.name) {
+                case "next":
+                    state = LOAD_STATE;
+                    updateListeners.splice(updateListeners.indexOf(this), 1);
+                    updateStateHandler();
+                    break;
+                case "timer":
+                    this.update();
+                    break;
+
+                }
+            },
+            update(){
+                this.canvas = document.getElementById("canv");
+                this.ctx = this.canvas.getContext("2d");
+                this.width = 640;
+                this.height = 480;
+                this.canvas.width = this.width;
+                this.canvas.height = this.height;
+                
+                let ctx = this.ctx;
+
+                ctx.fillStyle = "blue";
+                ctx.fillRect(0, 0, this.width, this.height);       
+            }
+        };
+
+        var loadStateHandler = {
+            start() {
+                updateListeners.push(this);
+            },
+            eventPump(event) {
+                switch (event.name) {
+                    case "next":
+                        state = RUN_STATE;
+                        updateListeners.splice(updateListeners.indexOf(this), 1);
+                        updateStateHandler();
+                        break;
+                    case "previous":
+                        state = TITLE_STATE;
+                        updateListeners.splice(updateListeners.indexOf(this), 1);
+                        updateStateHandler();
+                        break;
+                }
+            }
+        };
+
+        var runStateHandler = {
+            start() {
+                updateListeners.push(this);
+            },
+            eventPump(event) {
+                switch (event.name) {
+                    case "next":
+                        state = END_STATE;
+                        updateListeners.splice(updateListeners.indexOf(this), 1);
+                        updateStateHandler();
+                        break;
+                    case "previous":
+                        state = LOAD_STATE;
+                        updateListeners.splice(updateListeners.indexOf(this), 1);
+                        updateStateHandler();
+                        break;
+                }
+            }
+        };
+
+        var endStateHandler = {
+            start() {
+                updateListeners.push(this);
+            },
+            eventPump(event) {
+                switch (event.name) {
+                    case "next":
+                        state = TITLE_STATE;
+                        updateListeners.splice(updateListeners.indexOf(this), 1);
+                        updateStateHandler();
+                        break;
+                    case "previous":
+                        state = RUN_STATE;
+                        updateListeners.splice(updateListeners.indexOf(this), 1);
+                        updateStateHandler();
+                        break;
+                }
+            }
+        };
+
+        updateStateHandler();
+
+        function updateStateHandler() {
+        if (state == TITLE_STATE) {
+            stateHandler = titleStateHandler;
+        } else if (state == LOAD_STATE) {
+            stateHandler = loadStateHandler;
+        } else if (state == RUN_STATE) {
+            stateHandler = runStateHandler;
+        } else if (state == END_STATE) {
+            stateHandler = endStateHandler;
+        }
+
+
+        updateView();
+        stateHandler.start();
+        }
+    </script>
+</body>
+</html>

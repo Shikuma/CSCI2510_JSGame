@@ -15,137 +15,135 @@
 </head>
 
 <body onload="main()">
-
-    <template id="frameTemplate">
-
-    </template>
-
     <template id="titleTemplate">
         <div class="screen">
-        <canvas width="640" height="480" id="canv"></canvas>
+            <canvas width="640" height="480" id="canv"></canvas>
         </div>
         <div>
-            <button onclick="update({name:'next'})">Next State</button>
+        <button onclick="update({name:'next'})">Next</button>
+        <h2>Title</h2>
         </div>
     </template>
 
     <template id="loadTemplate">
         <div class="screen">
-        <div>Load Template</div>
+            <canvas width="640" height="480" id="canv"></canvas>
         </div>
         <div>
-            <button onclick="update({name:'previous'})">Previous State</button>
-            <button onclick="update({name:'next'})">Next State</button>
+        <button onclick="update({name:'next'})">Next</button>
+        <h2>Load</h2>
         </div>
     </template>
 
     <template id="runTemplate">
         <div class="screen">
-        <div>Run Template</div>
+            <canvas width="640" height="480" id="canv"></canvas>
         </div>
         <div>
-            <button onclick="update({name:'previous'})">Previous State</button>
-            <button onclick="update({name:'next'})">Next State</button>
-        
+        <button onclick="update({name:'next'})">Next</button>
+        <h2>Run</h2>
         </div>
     </template>
 
     <template id="endTemplate">
         <div class="screen">
-        <div>End Template</div>
+            <canvas width="640" height="480" id="canv"></canvas>
         </div>
         <div>
-            <button onclick="update({name:'previous'})">Previous State</button>
+        <button onclick="update({name:'next'})">Next</button>
+        <h2>End</h2>
         </div>
     </template>
+  <div id="templateHere"></div>
 
-    <div id="templateHere"></div>
+  
+<!-- View Code -->
+  <script>
 
-    <script>
-        //View Code
+    var titleTemplate, loadTemplate, runTemplate, endTemplate;
+    var templateHere;
 
-        var titleTemplate, loadTemplate, runTemplate, endTemplate;
-        var templateHere;
+    function updateView() {
+      //Get initial values as needed
+      if (!titleTemplate)
+        titleTemplate = document.getElementById("titleTemplate");
+      if (!loadTemplate)
+        loadTemplate = document.getElementById("loadTemplate");
+      if (!runTemplate)
+        runTemplate = document.getElementById("runTemplate");
+      if (!endTemplate)
+        endTemplate = document.getElementById("endTemplate");
+      if (!templateHere)
+        templateHere = document.getElementById("templateHere");
 
-        function updateView() {
-        //Get initial values as needed
-        if (!titleTemplate)
-            titleTemplate = document.getElementById("titleTemplate");
-        if (!loadTemplate)
-            loadTemplate = document.getElementById("loadTemplate");
-        if (!runTemplate)
-            runTemplate = document.getElementById("runTemplate");
-        if (!endTemplate)
-            endTemplate = document.getElementById("endTemplate");
-        if (!templateHere)
-            templateHere = document.getElementById("templateHere");
+      var clone;
+      if (state == TITLE_STATE) {
+        clone = titleTemplate.content.cloneNode(true);
+      } else if (state == LOAD_STATE) {
+        var clone = loadTemplate.content.cloneNode(true);
+      } else if (state == RUN_STATE) {
+        var clone = runTemplate.content.cloneNode(true);
+      } else if (state == END_STATE) {
+        var clone = endTemplate.content.cloneNode(true);
+      } else {
+        return console.log("ERROR: Couldn't match state " + state);
+      }
 
-        var clone;
-        if (state == TITLE_STATE) {
-            clone = titleTemplate.content.cloneNode(true);
-        } else if (state == LOAD_STATE) {
-            var clone = loadTemplate.content.cloneNode(true);
-        } else if (state == RUN_STATE) {
-            var clone = runTemplate.content.cloneNode(true);
-        } else if (state == END_STATE) {
-            var clone = endTemplate.content.cloneNode(true);
-        } else {
-            return console.log("ERROR: Couldn't match state " + state);
-        }
+      templateHere.innerHTML = "";
+      templateHere.appendChild(clone);
+    }
 
-        templateHere.innerHTML = "";
-        templateHere.appendChild(clone);
-        }
+  </script>
 
-    </script>
+<!-- Controls -->
+  <script>
+    function main() {
+      setInterval(timer, 1000 / 30);
+      updateView();
+    }
 
-    <script>
-        //Controls
+    var updateListeners = [];
 
-        function main() {
-        setInterval(timer, 1000 / 30);
-        updateView();
-        }
+    function timer() {
+      update({ name: "timer" })
+    }
 
-        var updateListeners = [];
+    function update(event) {
+      for (let i = 0; i < updateListeners.length; i++) {
+        updateListeners[i].eventPump(event);
+      }
+    }
 
-        function timer() {
-        update({name:"timer"})
-        }
+  </script>
 
-        function update(event) {
-        for (let i = 0; i < updateListeners.length; i++) {
-            updateListeners[i].eventPump(event);
-        }
-        }
+<!-- Model Code -->
+  <script>
+    //A variable that has my state
+    //JS is dynamcially typed
+    var state;
+    var stateHandler;
 
-    </script>
+    //A set of states we can be in
+    var TITLE_STATE = 1;
+    var LOAD_STATE = 2;
+    var RUN_STATE = 3;
+    var END_STATE = 4;
 
+    //Set our intital state
+    state = TITLE_STATE;
 
+    var speed = .01;
+    var xOffset = 0;
+    var yOffset = 0;
+    var forward = true;
 
-
-    <script>
-        //Model code
-        //A variable that has my state
-        //JS is dynamcially typed
-        var state;
-        var stateHandler;
-
-        //A set of states we can be in
-        var TITLE_STATE = 1;
-        var LOAD_STATE = 2;
-        var RUN_STATE = 3;
-        var END_STATE = 4;
-
-        //Set our intital state
-        state = TITLE_STATE;
-
-        var titleStateHandler = {
-            start() {
-                updateListeners.push(this);        
-            },
-            eventPump(event) {
-                switch (event.name) {
+    var titleStateHandler = {
+        start() {
+            updateListeners.push(this);
+            
+        },
+        eventPump(event) {
+            switch (event.name) {
                 case "next":
                     state = LOAD_STATE;
                     updateListeners.splice(updateListeners.indexOf(this), 1);
@@ -154,101 +152,187 @@
                 case "timer":
                     this.update();
                     break;
-
-                }
-            },
-            update(){
-                this.canvas = document.getElementById("canv");
-                this.ctx = this.canvas.getContext("2d");
-                this.width = 640;
-                this.height = 480;
-                this.canvas.width = this.width;
-                this.canvas.height = this.height;
-                
-                let ctx = this.ctx;
-
-                ctx.fillStyle = "blue";
-                ctx.fillRect(0, 0, this.width, this.height);       
             }
-        };
-
-        var loadStateHandler = {
-            start() {
-                updateListeners.push(this);
-            },
-            eventPump(event) {
-                switch (event.name) {
-                    case "next":
-                        state = RUN_STATE;
-                        updateListeners.splice(updateListeners.indexOf(this), 1);
-                        updateStateHandler();
-                        break;
-                    case "previous":
-                        state = TITLE_STATE;
-                        updateListeners.splice(updateListeners.indexOf(this), 1);
-                        updateStateHandler();
-                        break;
-                }
-            }
-        };
-
-        var runStateHandler = {
-            start() {
-                updateListeners.push(this);
-            },
-            eventPump(event) {
-                switch (event.name) {
-                    case "next":
-                        state = END_STATE;
-                        updateListeners.splice(updateListeners.indexOf(this), 1);
-                        updateStateHandler();
-                        break;
-                    case "previous":
-                        state = LOAD_STATE;
-                        updateListeners.splice(updateListeners.indexOf(this), 1);
-                        updateStateHandler();
-                        break;
-                }
-            }
-        };
-
-        var endStateHandler = {
-            start() {
-                updateListeners.push(this);
-            },
-            eventPump(event) {
-                switch (event.name) {
-                    case "next":
-                        state = TITLE_STATE;
-                        updateListeners.splice(updateListeners.indexOf(this), 1);
-                        updateStateHandler();
-                        break;
-                    case "previous":
-                        state = RUN_STATE;
-                        updateListeners.splice(updateListeners.indexOf(this), 1);
-                        updateStateHandler();
-                        break;
-                }
-            }
-        };
-
-        updateStateHandler();
-
-        function updateStateHandler() {
-        if (state == TITLE_STATE) {
-            stateHandler = titleStateHandler;
-        } else if (state == LOAD_STATE) {
-            stateHandler = loadStateHandler;
-        } else if (state == RUN_STATE) {
-            stateHandler = runStateHandler;
-        } else if (state == END_STATE) {
-            stateHandler = endStateHandler;
+        },
+        update() {
+            this.canvas = document.getElementById("canv");
+            this.ctx = this.canvas.getContext("2d");
+            this.width = 640;
+            this.height = 480;
+            this.canvas.width = this.width;
+            this.canvas.height = this.height;
+            let ctx = this.ctx;
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, this.width, this.height);
         }
+      
+    };
+
+    var loadStateHandler = {
+        start() {
+            updateListeners.push(this);
+        },
+        eventPump(event) {
+            switch (event.name) {
+                case "next":
+                    state = RUN_STATE;
+                    updateListeners.splice(updateListeners.indexOf(this), 1);
+                    updateStateHandler();
+                    break;
+                case "timer":
+                    this.update();
+                    break;
+            }
+        },
+        update() {
+            this.canvas = document.getElementById("canv");
+            this.ctx = this.canvas.getContext("2d");
+            this.width = 640;
+            this.height = 480;
+            this.canvas.width = this.width;
+            this.canvas.height = this.height;
+
+            this.rotation += .01;
+
+            let ctx = this.ctx;
+
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, this.width, this.height);
 
 
-        updateView();
-        stateHandler.start();
+            
+
         }
-    </script>
+    };
+
+    var runStateHandler = {
+        
+
+        start() {
+            updateListeners.push(this);
+            this.rotation = 0;
+            speed = .005;
+            xOffset = 0;
+            yOffset = 0;
+            forward = true;
+            
+        },
+        eventPump(event) {
+            switch (event.name) {
+            case "next":
+                state = END_STATE;
+                updateListeners.splice(updateListeners.indexOf(this), 1);
+                updateStateHandler();
+                break;
+
+            case "timer":
+                this.update();
+                break;
+            }
+        },
+        update() {
+            this.canvas = document.getElementById("canv");
+            this.ctx = this.canvas.getContext("2d");
+            this.width = 640;
+            this.height = 480;
+            this.canvas.width = this.width;
+            this.canvas.height = this.height;
+            let ctx = this.ctx;
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, this.width, this.height);
+
+            var shipDimensions = 1;
+
+            if(forward == true) xOffset += speed;
+            else xOffset -= speed;
+
+            if(xOffset >= 1){
+                 forward = false;
+                 speed += .005;
+                 yOffset++;
+            }else if(xOffset <= -1){
+                 forward = true;
+                 speed += .005;
+                 yOffset++;
+            }
+
+            console.log(xOffset);
+            ctx.translate((this.width / 2) + (this.width * .25 * xOffset ), 0 + (this.height/20) * yOffset);
+            ctx.scale(100, 100);
+
+            for(var i = 0; i < 5; i++){
+                //Draw the row
+                ctx.save()
+                {
+                    ctx.translate(0, i*.4 + shipDimensions / 5);
+                    ctx.scale(1, .1);
+                    ctx.fillStyle = "blue";
+                    ctx.fillRect(-3, 0, 6, shipDimensions*3)
+                    //Draw the column
+                    
+                    for(var j = 0; j < 10; j++){
+                        ctx.save()
+                        {
+                            ctx.translate(-3 + (.6 * j) + .2, .5)
+                            ctx.scale(.2, 2)
+                            ctx.fillStyle = "white";
+                            ctx.fillRect(0,0,shipDimensions,shipDimensions);
+                        }
+                        ctx.restore();
+                    }
+                }
+                ctx.restore();
+            }
+        }
+    };
+
+    var endStateHandler = {
+        start() {
+            updateListeners.push(this);
+        },
+        eventPump(event) {
+            switch (event.name) {
+            case "next":
+                state = TITLE_STATE;
+                updateListeners.splice(updateListeners.indexOf(this), 1);
+                updateStateHandler();
+                break;
+            case "timer":
+                this.update();
+                break;
+            }
+        },
+        update() {
+            this.canvas = document.getElementById("canv");
+            this.ctx = this.canvas.getContext("2d");
+            this.width = 640;
+            this.height = 480;
+            this.canvas.width = this.width;
+            this.canvas.height = this.height;
+            let ctx = this.ctx;
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, this.width, this.height);
+        }
+    };
+
+    updateStateHandler();
+
+    function updateStateHandler() {
+      if (state == TITLE_STATE) {
+        stateHandler = titleStateHandler;
+      } else if (state == LOAD_STATE) {
+        stateHandler = loadStateHandler;
+      } else if (state == RUN_STATE) {
+        stateHandler = runStateHandler;
+      } else if (state == END_STATE) {
+        stateHandler = endStateHandler;
+      }
+
+
+      updateView();
+      stateHandler.start();
+    }
+  </script>
 </body>
+
 </html>

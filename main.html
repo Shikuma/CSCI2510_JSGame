@@ -14,9 +14,9 @@
   </style>
 </head>
 
-<body onload="main()">
-    <template id="titleTemplate">
-        <div class="screen">
+<body onload="main()" onkeydown="keydown(event)" onkeyup="keyup(event)">
+    <template id="titleTemplate" >
+        <div class="screen" >
             <canvas width="640" height="480" id="canv"></canvas>
         </div>
         <div>
@@ -27,7 +27,7 @@
 
     <template id="loadTemplate">
         <div class="screen">
-            <canvas width="640" height="480" id="canv"></canvas>
+            <canvas width="640" height="480" id="canv" ></canvas>
         </div>
         <div>
         <button onclick="update({name:'next'})">Next</button>
@@ -36,8 +36,11 @@
     </template>
 
     <template id="runTemplate">
+        <div class="HUD">
+            <p width="620" height="40" id="hudText" ></p>
+        </div>
         <div class="screen">
-            <canvas width="640" height="480" id="canv"></canvas>
+            <canvas width="640" height="480" id="canv" ></canvas>
         </div>
         <div>
         <button onclick="update({name:'next'})">Next</button>
@@ -97,6 +100,47 @@
 
 <!-- Controls -->
   <script>
+
+    function keydown(e){
+        console.log(e)
+        if(e.key == "a" || e.key == "ArrowLeft")
+            update({ name: "moveLeft" });
+        if(e.key == "d" || e.key == "ArrowRight")
+            update({ name: "moveRight" });
+        if(e.key == "w")
+            update({ name: "moveUp" });
+        if(e.key == "s")
+            update({ name: "moveDown" });
+        if(e.key == " ")
+            update({ name: "shoot"});
+    }
+	
+    function keyup(e){
+        console.log("keyup");
+    }
+    function mousedown(e){
+	  if(e.button == 0)
+		
+		if(e.button == 2)
+		update({ name: "moveRight" });
+      console.log("mousedown");
+    }
+    function mouseup(e){
+      console.log("mouseup");
+    }
+    function mousemove(e){
+      console.log("mousemove");
+    }
+    
+    function wheel(e){
+      console.log(e.deltaY);
+	  if(e.deltaY > 0)
+	  update({ name: "moveLeft" });
+	  if(e.deltaY < 0)
+		update({ name: "moveRight" });
+      console.log("mousewheel");
+    }
+
     function main() {
       setInterval(timer, 1000 / 30);
       updateView();
@@ -132,10 +176,56 @@
     //Set our intital state
     state = TITLE_STATE;
 
-    var speed = .01;
-    var xOffset = 0;
-    var yOffset = 0;
+    
     var forward = true;
+    var win = false;
+    var playerOffset = 0;
+    var playerSpeed = 100;
+
+    //arbitrary value, not actually use outside calculating the clamp values
+    //Think of it as padding
+    var playerSize = 10.0;
+    var playerClampMin = playerSize;
+    var playerClampMax;
+    var playerCurrPos;
+    var lives = 3;
+
+    var hudText = "";
+
+    var bulletsCapacity = 10;
+    var bullets = [];
+    var currBullet = 0;
+
+    var numEnemies = 50;
+    var enemySpeed = 10;
+    var enemyOffsetX = 0;
+    var enemyOffsetY = 0;
+    var enemyPositionx;
+    var enemies = [];
+
+/*
+    class Player{
+        playerSize = 10.0;
+        playerClampMin = playerSize;
+        playerClampMax;
+        playerCurrPos;
+        lives = 3;
+    }
+*/
+    class Bullet{
+        width = 5;
+        height = 15;
+        speed = 0;
+        posX = 0;
+        posY = 0;
+    }
+
+    class Enemy{
+        posX = 0;
+        posY = 0;
+        size = 15;
+        enabled = true;
+    }
 
     var titleStateHandler = {
         start() {
@@ -199,23 +289,32 @@
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, this.width, this.height);
 
-
-            
-
         }
     };
 
     var runStateHandler = {
-        
-
         start() {
             updateListeners.push(this);
             this.rotation = 0;
-            speed = .005;
-            xOffset = 0;
-            yOffset = 0;
+            enemyOffsetX = 0;
+            enemyOffsetY = 0;
+            enemyPositionx = (enemyOffsetX * enemySpeed);
             forward = true;
-            
+            playerClampMax = this.width - playerSize;
+            playerCurrPos = (playerOffset*playerSpeed) + this.width/2;
+            currBullet = 0;
+            hudText = document.getElementById("hudText");
+
+            for(i = 0; i < bulletsCapacity; i++){
+                bullets.push(new Bullet());
+                bullets[i].posX = this.width/2;
+                bullets[i].posY = -20;
+            }
+            for(i = 0; i < numEnemies; i++){
+                enemies.push(new Enemy());
+            }
+
+            console.log(lives);
         },
         eventPump(event) {
             switch (event.name) {
@@ -227,6 +326,29 @@
 
             case "timer":
                 this.update();
+                break;
+
+            case "moveLeft":
+                if(playerCurrPos > playerClampMin)
+                    playerOffset -= .1;
+                break;
+            case "moveRight":
+                playerClampMax = this.width - playerSize; 
+                console.log(playerClampMax);
+                console.log(this.width + " " + playerSize);
+                if(playerCurrPos < playerClampMax)
+                    playerOffset += .1;
+                break;
+            case "shoot":
+                console.log("Pew pew!");
+                //Set the bullet position to the player's position
+                bullets[currBullet].posX = playerCurrPos;
+                bullets[currBullet].posY = this.height/2 + this.height/2.2;
+                //set the speed
+                bullets[currBullet].speed = 10;
+                //increment to the next bullet, clamping between 0 and bulletsCapacity
+                currBullet = currBullet >= bulletsCapacity-1 ? 0 : currBullet+1;
+                console.log(currBullet);
                 break;
             }
         },
@@ -241,47 +363,116 @@
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, this.width, this.height);
 
-            var shipDimensions = 1;
+            if(forward == true) enemyOffsetX += .1;
+            else enemyOffsetX -= .1;
 
-            if(forward == true) xOffset += speed;
-            else xOffset -= speed;
+            //console.log((enemyOffsetX * enemySpeed));
 
-            if(xOffset >= 1){
+            if((enemyOffsetX * enemySpeed) >= this.width/2 && forward == true){
                  forward = false;
-                 speed += .005;
-                 yOffset++;
-            }else if(xOffset <= -1){
+                 enemySpeed*=1.1;
+                 enemyOffsetY++;
+            }else if((enemyOffsetX * enemySpeed) <= -this.width/2 && forward == false){
                  forward = true;
-                 speed += .005;
-                 yOffset++;
+                 enemySpeed*=1.1;
+                 enemyOffsetY++;
+            }
+            
+            //Enemies parent
+            ctx.save()
+            {
+                enemyPositionx = (enemyOffsetX * enemySpeed);
+                if(enemyPositionx >= this.width/2) enemyPositionx = this.width/2;
+                else if(enemyPositionx <= -this.width/2) enemyPositionx = -this.width/2;
+
+                ctx.translate(enemyPositionx, (this.height/20) + (this.height/20) * enemyOffsetY);
+                ctx.scale(1, 1);
+                
+                //Draw ships
+                var currShip = 0;
+                for(var i = 0; i < 5; i++){
+                    //Draw the row
+                    ctx.save()
+                    {
+                        ctx.translate(0, i*(enemies[currShip].size) * 2 * 1.5);
+                        ctx.scale(1, 1);
+                        ctx.fillStyle = "blue";
+                        //left and right padding of 50 pixels
+                        ctx.fillRect(25, -enemies[currShip].size, this.width-50, enemies[currShip].size*2)
+                        
+                        //Draw the column
+                        for(var j = 0; j < numEnemies/5; j++){
+                            ctx.save()
+                            {
+                                ctx.translate(50 + (enemies[currShip].size * 4 * j), 0)
+                                ctx.scale(1, 1)
+                                ctx.fillStyle = "white";
+                                ctx.fillRect(-(enemies[currShip].size/2),-(enemies[currShip].size/2),enemies[currShip].size,enemies[currShip].size);
+                            }
+                            ctx.restore();
+                            currShip++;
+                        }
+                        
+                    }
+                    ctx.restore();
+                }
+            }ctx.restore();
+
+
+            //Player parent
+            ctx.save()
+            {
+                //Draw the player
+                //moves 10 pixels per frame with 100 speed and .01 offset
+                playerCurrPos = this.width/2 + (playerOffset*playerSpeed);
+                //playerPosx = playerPosx <= playerClampMin ? playerClampMin : playerPosx >= playerClampMax ? playerClampMax : playerPosx;
+                ctx.translate(playerCurrPos, this.height/2 + this.height/2.2);
+               
+                ctx.scale(10,10)
+                ctx.fillStyle = "red";
+                ctx.fillRect(-1,-1,2, 2);
+
+                
+            } ctx.restore();
+
+            //Bullets are broken
+            //I think it is not resetting the context fast enough
+            //First 2 bullets fired work fine
+            //The rest of the bullets require the previous one to be off screen
+            //Spawn in any active bullets
+            ctx.save()
+            {
+                var i = 0;
+                //Loop through all bullets
+                bullets.forEach(function(bullet){
+                    //Is the bullet on the screen?
+                    if(bullet.posY > -20){
+                        //move 10 pixels up per frame
+                        bullet.posY -= bullet.speed;
+                        console.log(bullet.posY);
+
+                        ctx.translate(bullet.posX, bullet.posY);
+                        ctx.scale(1,1)
+                        ctx.fillStyle = "green";
+                        ctx.fillRect(-(bullet.width/2), -(bullet.height/2), bullet.width, bullet.height);
+                    }//Is the bullet above the screen? If so, pool it
+                    else{
+                        bullet.posY = -20;
+                    } 
+                    i++;
+                    ctx.restore();
+                });
             }
 
-            console.log(xOffset);
-            ctx.translate((this.width / 2) + (this.width * .25 * xOffset ), 0 + (this.height/20) * yOffset);
-            ctx.scale(100, 100);
-
-            for(var i = 0; i < 5; i++){
-                //Draw the row
-                ctx.save()
-                {
-                    ctx.translate(0, i*.4 + shipDimensions / 5);
-                    ctx.scale(1, .1);
-                    ctx.fillStyle = "blue";
-                    ctx.fillRect(-3, 0, 6, shipDimensions*3)
-                    //Draw the column
-                    
-                    for(var j = 0; j < 10; j++){
-                        ctx.save()
-                        {
-                            ctx.translate(-3 + (.6 * j) + .2, .5)
-                            ctx.scale(.2, 2)
-                            ctx.fillStyle = "white";
-                            ctx.fillRect(0,0,shipDimensions,shipDimensions);
-                        }
-                        ctx.restore();
-                    }
-                }
-                ctx.restore();
+            if(enemyOffsetY >= 11) {
+                win = false;
+                lives--;
+                if(lives == 0)
+                    state = END_STATE;
+                else
+                    state = RUN_STATE;
+                updateListeners.splice(updateListeners.indexOf(this), 1);
+                updateStateHandler();
             }
         }
     };
@@ -289,6 +480,7 @@
     var endStateHandler = {
         start() {
             updateListeners.push(this);
+            
         },
         eventPump(event) {
             switch (event.name) {
@@ -312,6 +504,14 @@
             let ctx = this.ctx;
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, this.width, this.height);
+
+            if(win == false){
+                ctx.fillStyle = "red";
+                ctx.fillRect(this.width/2 - this.width/4, this.height/2 - this.height/4, this.width/2, this.height/2);
+            }else{
+                ctx.fillStyle = "green";
+                ctx.fillRect(this.width/2 - this.width/4, this.height/2 - this.height/4, this.width/2, this.height/2);
+            }
         }
     };
 
@@ -327,7 +527,6 @@
       } else if (state == END_STATE) {
         stateHandler = endStateHandler;
       }
-
 
       updateView();
       stateHandler.start();

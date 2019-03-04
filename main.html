@@ -43,8 +43,11 @@
             <canvas width="640" height="480" id="canv" ></canvas>
         </div>
         <div>
-        <button onclick="update({name:'next'})">Next</button>
-        <h2>Run</h2>
+            <br/>
+            <button onclick="update({name:'next'})">Next</button>
+            <h1 id="scoreText">Score: 0</h1>
+            <h1 id="livesText">Lives: 3</h1>
+            <h2>Run</h2>
         </div>
     </template>
 
@@ -53,8 +56,9 @@
             <canvas width="640" height="480" id="canv"></canvas>
         </div>
         <div>
-        <button onclick="update({name:'next'})">Next</button>
-        <h2>End</h2>
+        <button onclick="update({name:'restart'})">Restart</button>
+        <button onclick="update({name:'quit'})">Quit</button>
+        <h2 id="endStatus">End</h2>
         </div>
     </template>
   <div id="templateHere"></div>
@@ -189,12 +193,15 @@
     var playerClampMax;
     var playerCurrPos;
     var lives = 3;
+    var score = 0;
 
     var hudText = "";
 
     var bulletsCapacity = 10;
     var bullets = [];
     var currBullet = 0;
+    var canShoot = true;
+    var delayCounter = 0;
 
     var numEnemies = 50;
     var enemySpeed = 10;
@@ -218,6 +225,7 @@
         speed = 0;
         posX = 0;
         posY = 0;
+        enabled = false;
     }
 
     class Enemy{
@@ -259,8 +267,10 @@
     };
 
     var loadStateHandler = {
+        
         start() {
             updateListeners.push(this);
+            
         },
         eventPump(event) {
             switch (event.name) {
@@ -295,9 +305,14 @@
     var runStateHandler = {
         start() {
             updateListeners.push(this);
+            document.getElementById("livesText").innerHTML = "Lives: " + lives;
             this.rotation = 0;
             enemyOffsetX = 0;
             enemyOffsetY = 0;
+            enemySpeed = 10;
+            delayCounter = 0;
+            canShoot = true;
+
             enemyPositionx = (enemyOffsetX * enemySpeed);
             forward = true;
             playerClampMax = this.width - playerSize;
@@ -310,11 +325,18 @@
                 bullets[i].posX = this.width/2;
                 bullets[i].posY = -20;
             }
-            for(i = 0; i < numEnemies; i++){
-                enemies.push(new Enemy());
+            //if new game, create an array of enemies
+            //Else enable all the ones we destroyed in the previous game
+            if(enemies.length==0){
+                for(i = 0; i < numEnemies; i++){
+                    enemies.push(new Enemy());
+                }
+            }else{
+                enemies.forEach(function(enemy){
+                    if(enemy.enabled == false) enemy.enabled = true;
+                });
             }
 
-            console.log(lives);
         },
         eventPump(event) {
             switch (event.name) {
@@ -341,15 +363,19 @@
                 break;
             case "shoot":
                 console.log("Pew pew!");
-                //Set the bullet position to the player's position
-                bullets[currBullet].posX = playerCurrPos;
-                bullets[currBullet].posY = this.height/2 + this.height/2.2;
-                //set the speed
-                bullets[currBullet].speed = 10;
-                //increment to the next bullet, clamping between 0 and bulletsCapacity
-                currBullet = currBullet >= bulletsCapacity-1 ? 0 : currBullet+1;
-                console.log(currBullet);
-                break;
+                if(canShoot == true){
+                    bullets[currBullet].enabled = true;
+                    //Set the bullet position to the player's position
+                    bullets[currBullet].posX = playerCurrPos;
+                    bullets[currBullet].posY = this.height/2 + this.height/2.2;
+                    //set the speed
+                    bullets[currBullet].speed = 10;
+                    //increment to the next bullet, clamping between 0 and bulletsCapacity
+                    currBullet = currBullet >= bulletsCapacity-1 ? 0 : currBullet+1;
+                    canShoot = false;
+                    console.log(currBullet);
+                    break;
+                }
             }
         },
         update() {
@@ -365,6 +391,10 @@
 
             if(forward == true) enemyOffsetX += .1;
             else enemyOffsetX -= .1;
+
+            //Add a delay between shots. Every 20 frames reset
+            delayCounter++;
+            if(canShoot == false && delayCounter%20==0) canShoot=true;
 
             //console.log((enemyOffsetX * enemySpeed));
 
@@ -394,7 +424,8 @@
                     //Draw the row
                     ctx.save()
                     {
-                        ctx.translate(0, i*(enemies[currShip].size) * 2 * 1.5);
+                        var enemyPosY = i*(enemies[currShip].size) * 2 * 1.5;
+                        ctx.translate(0, enemyPosY);
                         ctx.scale(1, 1);
                         ctx.fillStyle = "blue";
                         //left and right padding of 50 pixels
@@ -404,12 +435,16 @@
                         for(var j = 0; j < numEnemies/5; j++){
                             ctx.save()
                             {
-                                ctx.translate(50 + (enemies[currShip].size * 4 * j), 0)
-                                ctx.scale(1, 1)
+                                var enemyPosX = 50 + (enemies[currShip].size * 4 * j);
+                                ctx.translate(enemyPosX, 0);
+                                ctx.scale(1, 1);
                                 ctx.fillStyle = "white";
-                                ctx.fillRect(-(enemies[currShip].size/2),-(enemies[currShip].size/2),enemies[currShip].size,enemies[currShip].size);
+                                if(enemies[currShip].enabled == true)
+                                    ctx.fillRect(-(enemies[currShip].size/2),-(enemies[currShip].size/2),enemies[currShip].size,enemies[currShip].size);
                             }
                             ctx.restore();
+                            enemies[currShip].posX = enemyPosX + (enemyOffsetX*enemySpeed);
+                            enemies[currShip].posY = enemyPosY + (enemyOffsetY*enemySpeed);
                             currShip++;
                         }
                         
@@ -428,7 +463,7 @@
                 //playerPosx = playerPosx <= playerClampMin ? playerClampMin : playerPosx >= playerClampMax ? playerClampMax : playerPosx;
                 ctx.translate(playerCurrPos, this.height/2 + this.height/2.2);
                
-                ctx.scale(10,10)
+                ctx.scale(10,10);
                 ctx.fillStyle = "red";
                 ctx.fillRect(-1,-1,2, 2);
 
@@ -439,38 +474,68 @@
             //I think it is not resetting the context fast enough
             //First 2 bullets fired work fine
             //The rest of the bullets require the previous one to be off screen
+            
             //Spawn in any active bullets
-            ctx.save()
-            {
-                var i = 0;
-                //Loop through all bullets
-                bullets.forEach(function(bullet){
-                    //Is the bullet on the screen?
-                    if(bullet.posY > -20){
+            
+            var i = 0;
+            //Loop through all bullets
+            bullets.forEach(function(bullet){
+                //Is the bullet on the screen?
+                if(bullet.enabled == true){
+                    ctx.save()
+                    {
                         //move 10 pixels up per frame
                         bullet.posY -= bullet.speed;
-                        console.log(bullet.posY);
+
+                        if(bullet.posY <= -20){
+                            bullet.enabled = false;
+                        }
 
                         ctx.translate(bullet.posX, bullet.posY);
-                        ctx.scale(1,1)
+                        ctx.scale(1,1);
                         ctx.fillStyle = "green";
                         ctx.fillRect(-(bullet.width/2), -(bullet.height/2), bullet.width, bullet.height);
-                    }//Is the bullet above the screen? If so, pool it
-                    else{
-                        bullet.posY = -20;
-                    } 
-                    i++;
+                    }
                     ctx.restore();
-                });
-            }
+                    
+                    //Check if any active bullets have hit an enemy
+                    enemies.forEach(function(enemy){
+                        console.log("Enemy");
+                        if(enemy.enabled == true){
+                            var xDist = Math.abs(bullet.posX - enemy.posX);
+                            var yDist = Math.abs(bullet.posY - enemy.posY);
+                            var maxDistX = (bullet.width/2 + enemy.size/2);
+                            var maxDistY = (bullet.height/2 + enemy.size/2);
+                            if(xDist <= maxDistX && yDist <= maxDistY){
+                                enemy.enabled = false;
+                                bullet.enabled = false;
+                                score++;
+                                document.getElementById("scoreText").innerHTML = "Score: " + score;
+                                //Check if the player destroyed every ship
+                                if(score >= enemies.length){
+                                    win = true;
+                                    state = END_STATE;
+                                    updateListeners.splice(updateListeners.indexOf(this), 1);
+                                    updateStateHandler();
+                                }
+                            } 
+                        }
+                    });
+                i++;
+                }
+            });
 
+            //Check if the player has lost yet
+            //Refine it later to check individual enemy collision, rather than row collision
             if(enemyOffsetY >= 11) {
                 win = false;
                 lives--;
+                
                 if(lives == 0)
                     state = END_STATE;
-                else
+                else{
                     state = RUN_STATE;
+                }
                 updateListeners.splice(updateListeners.indexOf(this), 1);
                 updateStateHandler();
             }
@@ -480,17 +545,28 @@
     var endStateHandler = {
         start() {
             updateListeners.push(this);
+            enemyOffsetY = 0;
+            enemyOffsetX = 0;
             
         },
         eventPump(event) {
             switch (event.name) {
-            case "next":
-                state = TITLE_STATE;
+            case "timer":
+                this.update();
+                break;
+            case "restart":
+                lives = 3;
+                score = 0;
+                state = RUN_STATE;
                 updateListeners.splice(updateListeners.indexOf(this), 1);
                 updateStateHandler();
                 break;
-            case "timer":
-                this.update();
+            case "quit":
+                lives = 3;
+                score = 0;
+                state = TITLE_STATE;
+                updateListeners.splice(updateListeners.indexOf(this), 1);
+                updateStateHandler();
                 break;
             }
         },
@@ -508,8 +584,10 @@
             if(win == false){
                 ctx.fillStyle = "red";
                 ctx.fillRect(this.width/2 - this.width/4, this.height/2 - this.height/4, this.width/2, this.height/2);
+                document.getElementById("endStatus").innerHTML = "You get nothing! You lose! Good day, Sir!";
             }else{
                 ctx.fillStyle = "green";
+                document.getElementById("endStatus").innerHTML = "Winner Winner Chicken Dinner!";
                 ctx.fillRect(this.width/2 - this.width/4, this.height/2 - this.height/4, this.width/2, this.height/2);
             }
         }

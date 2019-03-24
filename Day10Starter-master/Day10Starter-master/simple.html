@@ -1,0 +1,167 @@
+<!doctype html>
+<html>
+
+<head>
+  <title> Intro to Game Programming</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+
+    .stretchedMargin {
+      display: block;
+      position: absolute;
+      height: auto;
+      bottom: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+    }
+  </style>
+  
+  <!-- Geometry -->
+  <script src="./geo/Geometry.js"></script>
+  <script src="./geo/Vector2.js"></script>
+  <script scr="./geo/Circle2.js"></script>
+  <script scr="./geo/CircleFile.js"></script>
+  <script src="./geo/Triangle.js"></script>
+  <script src="./geo/A.js"></script>
+  <script src="./geo/Line.js"></script>
+  <script src="./geo/AxisAlignedRectangle.js"></script>
+
+  <!-- Physics -->
+  <script src="./physics/Collider.js"></script>
+
+  <!-- Components -->
+  <script src="./components/Component.js"></script>
+  <script src="./components/GeometryComponent.js"></script>
+  <script src="./components/CircleComponent.js"></script>
+  <script src="./components/AxisAlignedRectangleComponent.js"></script>
+  <script src="./components/RendererComponent.js"></script>
+  <script src="./components/GeometryRendererComponent.js"></script>
+  <script src="./components/GUIRendererComponent.js"></script>
+  <script src="./components/GUIRectangleComponent.js"></script>
+  <script src="./components/GUITextComponent.js"></script>
+  <script src="./engine/CameraComponent.js"></script>
+  <script src="./components/Behavior.js"></script>
+
+
+  <!-- Game Engine Code -->
+  <script src="./engine/Transform.js"></script>
+  <script src="./engine/GameObject.js"></script>
+  <script src="./engine/Camera.js"></script>
+  <script src="./engine/Scene.js"></script>
+
+
+  <!-- Behavior Scripts-->
+  <script src="./behaviors/GoodSquareBehavior.js"></script>
+
+
+  <!-- Prefab GameObjects -->
+  <script src="./prefabs/Good.js"></script>
+  <script src="./prefabs/Bad.js"></script>
+  <script src="./prefabs/GUIContainer.js"></script>
+  <script src="./prefabs/GUITextObject.js"></script>
+
+
+
+  <script src="./eventHandler.js"></script>
+
+  <script src="./guiSupport.js"></script>
+
+  <!-- Scenes in our games -->
+  <script src="./scenes/TitleScene.js"></script>
+  <script src="./scenes/LoadScene.js"></script>
+  <script src="./scenes/RunScene.js"></script>
+  <script src="./scenes/EndScene.js"></script>
+  
+  
+</head>
+
+<body  onkeydown="keydown(event)" onKeyUp="keyup(event)" style="background-color:lightgray" onresize="resize(event)">
+    <div class="stretchedMargin">
+      <canvas id="canv" onmousedown="mousedown(event)" onmouseup="mouseup(event)" onmousemove="mousemove(event)" onwheel="wheel(event)"></canvas>
+    </div>
+    <script src="./boot.js"></script>
+  <script>
+    
+    //The behavior script for our main character
+    class MainCharacterBehavior extends Behavior {
+      constructor() {
+        super("Main Character Behavior"); //Component name
+        this.speed = 5;//Speed of the character
+      }
+      update(gameObject) {
+        //Have the main character respond to the WASD and arrow keys
+        if (keys["a"] || keys["ArrowLeft"]) {
+          gameObject.transform.position.x -= this.speed * Time.deltaTime; /// speed is in units/s * s
+        }
+        if (keys["d"] || keys["ArrowRight"]) {
+          gameObject.transform.position.x += this.speed * Time.deltaTime; /// speed is in units/s * s
+        }
+
+        if (keys["w"] || keys["ArrowUp"]) {
+          gameObject.transform.position.y += this.speed * Time.deltaTime; /// speed is in units/s * s
+        }
+        if (keys["s"] || keys["ArrowDown"]) {
+          gameObject.transform.position.y -= this.speed * Time.deltaTime; /// speed is in units/s * s
+        }
+      }
+      OnClick(gameObject, location){
+        console.log("clicked on" + location.x + " " + location.y);
+      }
+    }
+
+    //The game object for the main character
+    class MainCharacter extends GameObject {
+      constructor() {
+        super("Main Character"); //Game object name
+
+        var myGeometry = new Vector2(0, 0); //How we will represent the game object in the game
+
+        var myGeometryComponent = new GeometryComponent(myGeometry); //The component that will keep track of the geometry
+
+        var myRenderer = new GeometryRendererComponent("green", myGeometry); //The renderer that will draw the geometry
+        this.renderer = myRenderer; //Make this our default renderer
+
+        var myBehavior = new MainCharacterBehavior(); //Add our behavior script
+
+        //Add our components to the game object
+        this.components.push(myGeometryComponent);
+        this.components.push(myRenderer);
+        this.components.push(myBehavior);
+      }
+    }
+
+    //The main scene in our game
+    class MyScene extends Scene {
+      constructor() {
+        super("My Scene"); //The name of our scene
+      }
+      start() {
+        this.camera = new Camera(40, "azure");// Add a camera game object
+        this.camera.transform.position = new Vector2(1 / 2, 1 / 2); //Set its position
+
+        this.mainCharacter = new MainCharacter(); //Create a main character. This defaults to position 0,0
+
+        //Push all our game objects into the scene
+        this.hierarchy.push(this.camera);
+        this.hierarchy.push(this.mainCharacter);
+      }
+    }
+
+    //Code to start the game
+    function main() {
+      scene = new MyScene();//Instantiate the main scene
+      scene.start(); //Start the main scene
+      updateListeners.push(scene); //Have the scene listen to events
+      setInterval(timer, msBetweenFrames);  //Start the main timer to be called 30 times a second (every 33.3ms)
+    }
+
+    main(); //Start the game
+  </script>
+</body>
+</html>

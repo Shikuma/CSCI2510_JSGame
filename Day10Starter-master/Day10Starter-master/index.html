@@ -1,0 +1,180 @@
+<!doctype html>
+<html>
+
+<head>
+  <title> Intro to Game Programming</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+
+    .stretchedMargin {
+      display: block;
+      position: absolute;
+      height: auto;
+      bottom: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+    }
+
+    
+  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+  
+  <!-- Geometry -->
+  <script src="./geo/Geometry.js"></script>
+  <script src="./geo/Vector2.js"></script>
+  <script scr="./geo/Circle2.js"></script>
+  <script scr="./geo/CircleFile.js"></script>
+  <script src="./geo/Triangle.js"></script>
+  <script src="./geo/A.js"></script>
+  <script src="./geo/Line.js"></script>
+  <script src="./geo/AxisAlignedRectangle.js"></script>
+
+  <!-- Physics -->
+  <script src="./physics/Collider.js"></script>
+
+  <!-- Components -->
+  <script src="./components/Component.js"></script>
+  <script src="./components/GeometryComponent.js"></script>
+  <script src="./components/CircleComponent.js"></script>
+  <script src="./components/AxisAlignedRectangleComponent.js"></script>
+  <script src="./components/RendererComponent.js"></script>
+  <script src="./components/GeometryRendererComponent.js"></script>
+  <script src="./components/GUIRendererComponent.js"></script>
+  <script src="./components/GUIRectangleComponent.js"></script>
+  <script src="./components/GUITextComponent.js"></script>
+  <script src="./engine/CameraComponent.js"></script>
+  <script src="./components/Behavior.js"></script>
+
+
+  <!-- Game Engine Code -->
+  <script src="./engine/Transform.js"></script>
+  <script src="./engine/GameObject.js"></script>
+  <script src="./engine/Camera.js"></script>
+  <script src="./engine/Scene.js"></script>
+
+
+  <!-- Behavior Scripts-->
+  <script src="./behaviors/GoodSquareBehavior.js"></script>
+  <script src="./behaviors/BulletBehavior.js"></script>
+
+
+  <!-- Prefab GameObjects -->
+  <script src="./prefabs/Good.js"></script>
+  <script src="./prefabs/Bad.js"></script>
+  <script src="./prefabs/Bullet.js"></script>
+  <script src="./prefabs/GUIContainer.js"></script>
+  <script src="./prefabs/GUITextObject.js"></script>
+
+
+
+  <script src="./eventHandler.js"></script>
+
+  <script src="./guiSupport.js"></script>
+
+  <!-- Scenes in our games -->
+  <script src="./scenes/TitleScene.js"></script>
+  <script src="./scenes/LoadScene.js"></script>
+  <script src="./scenes/RunScene.js"></script>
+  <script src="./scenes/EndScene.js"></script>
+</head>
+
+<body onload="main()" onkeydown="keydown(event)" onKeyUp="keyup(event)" style="background-color:lightgray"
+  onresize="resize(event)">
+  <div class="stretchedMargin">
+    <canvas id="canv" onmousedown="mousedown(event)" onmouseup="mouseup(event)" onmousemove="mousemove(event)"
+      onwheel="wheel(event)">
+    </canvas>
+  </div>
+  
+  <script>//Basic initialization code.
+
+    //Handle the scenes state machine
+
+
+
+    function updateStateHandler(newState) {
+      if (!newState) {
+        if (state == TITLE_STATE) {
+          stateHandler = titleStateHandler;
+        } else if (state == LOAD_STATE) {
+          stateHandler = loadStateHandler;
+        } else if (state == RUN_STATE) {
+          stateHandler = runStateHandler;
+        } else if (state == END_STATE) {
+          stateHandler = endStateHandler;
+        }
+      }
+      else {
+        stateHandler = newState;
+      }
+
+
+
+      stateHandler.start();
+
+      
+    }
+
+    var state;        //State variable that tracks my current scene    
+
+    //A set of states we can be in, where each state represents a scene
+    var TITLE_STATE = 1;  //The opening scene, which displays the title of our game
+    var LOAD_STATE = 2;   //The load scene, which shows a loading progreess bar
+    var RUN_STATE = 3;    //The main scene, where the game runs
+    var END_STATE = 4;    //An end state, which the user sees which the game ends
+
+    //Set our intital scene state to the title state
+    state = RUN_STATE;
+
+    var Time = {}                                     //Stores information about time that is available to our game
+    var msBetweenFrames = 1000 / 30;                //Time in milliseconds between frames
+    Time.deltaTime = msBetweenFrames / 1000;        //Time in seconds between frames.
+
+    //Setup the canvas variables
+    var canvas = document.getElementById("canv");
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    var width = canvas.width;
+    var height = canvas.height;
+
+
+    var ctx = canvas.getContext("2d");
+
+
+    var runStateHandler = new RunScene();
+    var titleStateHandler = new TitleScene();
+    var endStateHandler = new EndScene();
+    var loadStateHandler = new LoadScene();
+
+    allScenes = [
+      titleStateHandler,
+      loadStateHandler,
+      runStateHandler,
+      endStateHandler
+    ];
+
+    function main() {
+
+      updateStateHandler();                 //Load the current scene in our state machine
+
+
+      setInterval(timer, msBetweenFrames);  //Start the main timer to be called 30 times a second (every 33.3ms)
+    }
+  </script>
+
+  
+
+
+
+</body>
+
+</html>
